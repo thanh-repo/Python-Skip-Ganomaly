@@ -19,7 +19,7 @@ matplotlib
 # mkl-service==2.0.2
 numpy
 olefile==0.46
-pandas==0.25.0
+pandas
 parso==0.5.1
 patsy==0.5.1
 pexpect==4.7.0
@@ -34,7 +34,7 @@ pyparsing==2.4.0
 PySocks==1.7.0
 python-dateutil
 pytz
-pyzmq==18.0.2
+pyzmq
 requests==2.22.0
 scikit-learn
 scipy
