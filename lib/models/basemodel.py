@@ -219,7 +219,7 @@ class BaseModel():
             res = self.test()
             if res['AUC'] > best_auc:
                 best_auc = res['AUC']
-                self.save_weights(self.epoch)
+            self.save_weights(self.epoch)
             self.visualizer.print_current_performance(res, best_auc)
         print(">> Training model %s.[Done]" % self.name)
 

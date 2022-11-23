@@ -71,7 +71,7 @@ class Options():
         self.parser.add_argument('--w_lat', type=float, default=1, help='Weight for latent space loss. default=1')
         self.parser.add_argument('--lr_policy', type=str, default='lambda', help='lambda|step|plateau')
         self.parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
-        self.isTrain = False
+        self.isTrain = True
         self.opt = None
 
     def parse(self):
@@ -81,6 +81,8 @@ class Options():
         self.opt = self.parser.parse_args()
         self.opt.isTrain = self.isTrain   # train or test
         self.opt.dataset = 'surface_crack'
+        self.opt.batchsize = 8
+        self.opt.niter = 50
         if not torch.cuda.is_available():
             self.opt.device = 'cpu'
             self.opt.gpu_ids = '-1'
