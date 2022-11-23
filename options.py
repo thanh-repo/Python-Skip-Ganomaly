@@ -80,7 +80,10 @@ class Options():
 
         self.opt = self.parser.parse_args()
         self.opt.isTrain = self.isTrain   # train or test
-
+        self.opt.dataset = 'surface_crack'
+        if not torch.cuda.is_available():
+            self.opt.device = 'cpu'
+            self.opt.gpu_ids = '-1'
         str_ids = self.opt.gpu_ids.split(',')
         self.opt.gpu_ids = []
         for str_id in str_ids:

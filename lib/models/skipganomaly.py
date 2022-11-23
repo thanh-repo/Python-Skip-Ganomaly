@@ -23,14 +23,16 @@ from lib.visualizer import Visualizer
 from lib.loss import l2_loss
 from lib.evaluate import roc
 from lib.models.basemodel import BaseModel
-
+from torchvision import transforms
+from torchvision.datasets import ImageFolder
+from PIL import Image
 
 
 class Skipganomaly(BaseModel):
     """GANomaly Class
     """
     @property
-    def name(self): return 'skip-ganomaly'
+    def name(self): return 'skipganomaly'
 
     def __init__(self, opt, data=None):
         super(Skipganomaly, self).__init__(opt, data)
@@ -175,7 +177,7 @@ class Skipganomaly(BaseModel):
             self.times = []
             self.total_steps = 0
             epoch_iter = 0
-            for i, data in enumerate(self.data.valid, 0):
+            for i, data in enumerate(self.data.valid):
                 self.total_steps += self.opt.batchsize
                 epoch_iter += self.opt.batchsize
                 time_i = time.time()
@@ -232,17 +234,17 @@ class Skipganomaly(BaseModel):
                 hist.to_csv("histogram.csv")
 
                 # Filter normal and abnormal scores.
-                abn_scr = hist.loc[hist.labels == 1]['scores']
-                nrm_scr = hist.loc[hist.labels == 0]['scores']
-
-                # Create figure and plot the distribution.
-                # fig, ax = plt.subplots(figsize=(4,4));
-                sns.distplot(nrm_scr, label=r'Normal Scores')
-                sns.distplot(abn_scr, label=r'Abnormal Scores')
-
-                plt.legend()
-                plt.yticks([])
-                plt.xlabel(r'Anomaly Scores')
+                # abn_scr = hist.loc[hist.labels == 1]['scores']
+                # nrm_scr = hist.loc[hist.labels == 0]['scores']
+                #
+                # # Create figure and plot the distribution.
+                # # fig, ax = plt.subplots(figsize=(4,4));
+                # sns.distplot(nrm_scr, label=r'Normal Scores')
+                # sns.distplot(abn_scr, label=r'Abnormal Scores')
+                #
+                # plt.legend()
+                # plt.yticks([])
+                # plt.xlabel(r'Anomaly Scores')
 
             ##
             # PLOT PERFORMANCE
@@ -253,3 +255,49 @@ class Skipganomaly(BaseModel):
             ##
             # RETURN
             return performance
+
+    def predict(self, epoch=0, image=None):
+        transform = transforms.Compose([transforms.Resize(self.opt.isize),
+                                        transforms.CenterCrop(self.opt.isize),
+                                        transforms.ToTensor(),
+                                        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)), ])
+        image = Image.open(image)
+        image_tensor = transform(image)
+        for i in tqdm(range(100)):
+            pass
+        with torch.no_grad():
+            is_best = False
+            if epoch is None:
+                is_best = True
+            self.load_weights(epoch=epoch, is_best=is_best)
+
+            scores = {}
+            # Create big error tensor for the test set.
+            self.set_input(image_tensor)
+            self.fake = self.netg(self.input)
+
+            _, self.feat_real = self.netd(self.input)
+            _, self.feat_fake = self.netd(self.fake)
+
+            # Calculate the anomaly score.
+            si = self.input.size()
+            sz = self.feat_real.size()
+            rec = (self.input - self.fake).view(si[0], si[1] * si[2] * si[3])
+            lat = (self.feat_real - self.feat_fake).view(sz[0], sz[1] * sz[2] * sz[3])
+            rec = torch.mean(torch.pow(rec, 2), dim=1)
+            lat = torch.mean(torch.pow(lat, 2), dim=1)
+            error = 0.9 * rec + 0.1 * lat
+
+            self.an_scores[i * self.opt.batchsize: i * self.opt.batchsize + error.size(0)] = error.reshape(
+                error.size(0))
+            self.gt_labels[i * self.opt.batchsize: i * self.opt.batchsize + error.size(0)] = self.gt.reshape(
+                error.size(0))
+
+            # Save test images.
+            if self.opt.save_test_images:
+                dst = os.path.join(self.opt.outf, self.opt.name, 'test', 'images')
+                if not os.path.isdir(dst): os.makedirs(dst)
+                real, fake, _ = self.get_current_images()
+                vutils.save_image(real, '%s/real_%03d.eps' % (dst, i + 1), normalize=True)
+                vutils.save_image(fake, '%s/fake_%03d.eps' % (dst, i + 1), normalize=True)
+

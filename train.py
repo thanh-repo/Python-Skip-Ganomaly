@@ -33,7 +33,9 @@ def main():
     # opt.model = "skipganomaly"
     data = load_data(opt)
     model = load_model(opt, data)
-    model.train()
+    # model.train()
+    # model.test(True)
+    model.predict(epoch=0, image=r"C:\Users\Thanh\Documents\GitHub\Python-Skip-Ganomaly\data\surface_crack\test\1.abnormal\7069-17.jpg")
 
 
 if __name__ == '__main__':
